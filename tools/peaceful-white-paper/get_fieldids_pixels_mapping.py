@@ -33,7 +33,7 @@ outdir = options.outdir
 ########################################################################################################################
 time0 = time.time()
 
-fids_file = 'field_list.csv'   # in this repo
+fids_file = '../field_list.csv'   # in this repo
 all_fields = pd.read_csv(fids_file)
 fov_radius = np.radians(1.75)
 

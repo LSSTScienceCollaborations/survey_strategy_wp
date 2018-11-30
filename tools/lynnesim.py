@@ -196,14 +196,13 @@ class LynneSim(object):
         else:
             z_min = 100000
             z_max = 0
-        for name in self.regions:
-            try:
-                z = self.regions[name][metric]
-            except KeyError:
-                raise ValueError('Unrecognized metric- must be a column in self.regions.')
-            z_min = min(z.min(), z_min)
-            z_max = max(z.max(), z_max)
-        print(z_min, z_max)
+            for name in self.regions:
+                try:
+                    z = self.regions[name][metric]
+                except KeyError:
+                    raise ValueError('Unrecognized metric- must be a column in self.regions.')
+                z_min = min(z.min(), z_min)
+                z_max = max(z.max(), z_max)
 
         fig = plt.figure(figsize=(8, 8))
         ax = plt.subplot(111, projection="aitoff")
@@ -265,7 +264,10 @@ class LynneSim(object):
         return fig
 
 def radec2project(ra, dec):
-    return (np.radians(ra) - np.pi, np.radians(dec))
+    x = -1 * np.radians(ra)
+    x = np.where(x < -np.pi, x + 2 * np.pi, x)
+    y = np.radians(dec)
+    return x, y
 
 def add_constant_column(df, column, value):
     """

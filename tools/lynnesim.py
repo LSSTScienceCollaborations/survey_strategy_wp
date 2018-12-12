@@ -117,7 +117,9 @@ class LynneSim(object):
         assigned_regions = list(self.NvisitsPerField.keys())
         for name in assigned_regions:
             nfields = len(self.regions[name])
-            vis_assigned += nfields * self.NvisitsPerField[name]
+            vis_region = self.NvisitsPerField[name] * nfields
+            print('Assigned %d visits to %s (%d visits/field * %d fields)' % (vis_region, name, self.NvisitsPerField[name], nfields))
+            vis_assigned += vis_region
         print('Assigned %d visits based on NvisitsPerField values to each of %s'
               % (vis_assigned, assigned_regions))
         # Now divide the remaining visits among the other regions evenly.
@@ -140,8 +142,10 @@ class LynneSim(object):
                   % (vis_split, nfields_remaining, unassigned_regions, vis_per_field))
 
         vis = vis_split + vis_assigned
-        print('This leaves about %d visits out of candidate %d remaining.' % (self.Nvisits - vis,
+        remain = self.Nvisits - vis
+        print('This leaves about %d visits out of candidate %d remaining.' % (remain,
                                                                               self.Nvisits))
+        print(' (or that these surveys required %.2f of all the original visits.' % (vis / self.totalNvis))
 
         # Add 'Nvis' column to regions dataframe.
         for name in self.regions:
@@ -206,7 +210,7 @@ class LynneSim(object):
 
         fig = plt.figure(figsize=(8, 8))
         ax = plt.subplot(111, projection="aitoff")
-        for name in self.regions:
+        for i, name in enumerate(self.regions):
             x, y = radec2project(self.regions[name].ra, self.regions[name].dec)
             if metric is None:
                 ax.scatter(x, y, alpha=0.7, label=name) # Marker color is assigned automatically
@@ -215,7 +219,7 @@ class LynneSim(object):
                 im = ax.scatter(x, y, c=z, cmap='viridis', vmin=z_min, vmax=z_max)
         plt.grid(True)
         if metric is None:
-            plt.legend()
+            plt.legend(loc=(1.0, 0.5))
         else:
             cb = plt.colorbar(im, orientation='horizontal')
             #cb.set_clim(z_min, z_max)
@@ -234,6 +238,7 @@ class LynneSim(object):
                       [0, 0, 0], [1, 0, 0], [.5, .5, 1]]
         ci = 0
         colors = {}
+        add_planes = True
         for name in self.regions:
             print(name)
             # Modify slicer so we can use it for plotting.
@@ -250,8 +255,10 @@ class LynneSim(object):
                 fieldLocs.data[i] = colors[name]
             skymap = plots.BaseSkyMap()
             fignum = skymap(fieldLocs, slicer,
-                            {'metricIsColor': True, 'bgcolor': 'lightgray', 'raCen': 0, 'figsize': (10, 8)},
+                            {'metricIsColor': True, 'bgcolor': 'lightgray', 'raCen': 0, 'figsize': (10, 8),
+                             'ecPlane': add_planes, 'mwZone': add_planes},
                             fignum=fignum)
+            add_planes = False
         fig = plt.figure(fignum)
         labelcolors = []
         labeltext = []

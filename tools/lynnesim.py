@@ -182,7 +182,7 @@ class LynneSim(object):
                 colname = 'depth_%s' % f
                 self.regions[name][colname] = m5
 
-    def plot_sky_map(self, metric=None):
+    def plot_sky_map(self, metric=None, clabel=None):
         """
         Plot the desired metric as a sky map.
 
@@ -222,6 +222,7 @@ class LynneSim(object):
             plt.legend(loc=(1.0, 0.5))
         else:
             cb = plt.colorbar(im, orientation='horizontal')
+            cb.set_label(clabel, fontsize='large')
             #cb.set_clim(z_min, z_max)
         return fig
 
@@ -267,7 +268,43 @@ class LynneSim(object):
                          fc=(colors[name][0], colors[name][1], colors[name][2]),
                          alpha=colors[name][3])
             labelcolors.append(el)
+            labeltext.append(name)
         plt.legend(labelcolors, labeltext, loc=(0.85, 0.9), fontsize='smaller')
+        return fig
+
+    def fancy_plot_Nvisits(self, cmap='viridis'):
+        """Make a fancier looking sky map of the footprint.
+        """
+        if not(fancyplot):
+            print('Cannot make this fancy plot; MAF plotting utilities unavailable.')
+            return None
+        # fieldRA / fieldDec are dictionaries - key=prop
+        slicer = slicers.OpsimFieldSlicer()
+        fignum = None
+        # Add a 'survey' that covers the whole sky, and then we put nvisits per survey into it.
+        regionlist = list(self.regions.keys())
+        self.define_survey_region('_all_nvisits', limits={'dec':[-90, 90]})
+        self.regions['_all_nvisits'] = self.regions['_all_nvisits'].assign(Nvis = 0)
+        for name in regionlist:
+            print(name)
+            tmp = self.regions['_all_nvisits']['Nvis'] + self.regions[name]['Nvis']
+            tmp = np.where(np.isnan(tmp), 0, tmp)
+            self.regions['_all_nvisits']['Nvis'] += tmp
+        nvisits = ma.MaskedArray(data=self.regions['_all_nvisits']['Nvis'],
+                                 mask=np.zeros(len(self.regions['_all_nvisits']), bool),
+                                 fill_value=-99)
+        nvisits.mask = np.where(nvisits == 0, True, False)
+        # Modify slicer so we can use it for plotting.
+        slicer.slicePoints['ra'] = np.radians(self.regions['_all_nvisits']['ra'])
+        slicer.slicePoints['dec'] = np.radians(self.regions['_all_nvisits']['dec'])
+        skymap = plots.BaseSkyMap()
+        fignum = skymap(nvisits, slicer,
+                        {'xlabel': 'Nvisits', 'cmap':cmap,
+                         'raCen': 0, 'figsize': (10, 8), 'colorMin':0, 'colorMax': 1000,
+                         'ecPlane': True, 'mwZone': True},
+                        fignum=fignum)
+        del self.regions['_all_nvisits']
+        fig = plt.figure(fignum)
         return fig
 
 def radec2project(ra, dec):
